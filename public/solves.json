@@ -1,0 +1,18 @@
+[
+  { "id": 1, "raw": "00:02:14:00", "seconds": 134.00, "date": "2026-10-01", "time": "14:10:22", "notes": "Session 1" },
+  { "id": 2, "raw": "00:01:51:24", "seconds": 111.24, "date": "2026-10-01", "time": "14:15:45", "notes": "Session 1" },
+  { "id": 3, "raw": "00:02:02:91", "seconds": 122.91, "date": "2026-10-01", "time": "14:21:03", "notes": "Session 1" },
+  { "id": 4, "raw": "00:02:00:02", "seconds": 120.02, "date": "2026-10-01", "time": "14:26:18", "notes": "Session 1" },
+  { "id": 5, "raw": "00:01:52:31", "seconds": 112.31, "date": "2026-10-01", "time": "14:30:50", "notes": "Session 1" },
+  { "id": 6, "raw": "00:01:52:12", "seconds": 112.12, "date": "2026-10-01", "time": "14:35:12", "notes": "Session 1" },
+  { "id": 7, "raw": "00:01:47:94", "seconds": 107.94, "date": "2026-10-02", "time": "19:05:30", "notes": "Session 2" },
+  { "id": 8, "raw": "00:02:00:75", "seconds": 120.75, "date": "2026-10-02", "time": "19:11:14", "notes": "Session 2" },
+  { "id": 9, "raw": "00:01:43:62", "seconds": 103.62, "date": "2026-10-02", "time": "19:16:40", "notes": "Session 2" },
+  { "id": 10, "raw": "00:01:28:62", "seconds": 88.62, "date": "2026-10-02", "time": "19:22:05", "notes": "Smooth F2L" },
+  { "id": 11, "raw": "00:01:33:34", "seconds": 93.34, "date": "2026-10-02", "time": "19:28:50", "notes": "Session 2" },
+  { "id": 12, "raw": "00:01:50:42", "seconds": 110.42, "date": "2026-10-02", "time": "19:35:10", "notes": "Session 2" },
+  { "id": 13, "raw": "00:01:50:66", "seconds": 110.66, "date": "2026-10-03", "time": "20:10:05", "notes": "Session 3" },
+  { "id": 14, "raw": "00:01:44:40", "seconds": 104.40, "date": "2026-10-03", "time": "20:16:22", "notes": "Session 3" },
+  { "id": 15, "raw": "00:01:52:57", "seconds": 112.57, "date": "2026-10-03", "time": "20:22:40", "notes": "Session 3" },
+  { "id": 16, "raw": "00:02:29:44", "seconds": 149.44, "date": "2026-10-03", "time": "20:28:15", "notes": "Lockup" }
+]

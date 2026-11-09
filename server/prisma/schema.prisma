@@ -1,0 +1,185 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Penalty {
+  NONE
+  PLUS_TWO
+  DNF
+}
+
+enum CompetitionFormat {
+  AO5
+  BEST_OF_3
+  AO12
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  nickname     String?
+  bio          String?
+  avatarUrl    String?
+  wcaId        String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  privacySettings     UserPrivacySettings?
+  sessions            Session[]
+  solves              Solve[]
+  competitionEntries  CompetitionEntry[]
+  createdCompetitions Competition[]        @relation("CompetitionCreator")
+  achievements        UserAchievement[]
+
+  // Followers / Following
+  following Follows[] @relation("UserFollowing")
+  followers Follows[] @relation("UserFollowers")
+
+  @@map("users")
+}
+
+model UserPrivacySettings {
+  userId              String   @id
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isProfilePublic     Boolean  @default(true)
+  showSolvesHistory   Boolean  @default(true)
+  showPbStats         Boolean  @default(true)
+  showFollowers       Boolean  @default(true)
+  showActivityHeatmap Boolean  @default(true)
+  allowFollow         Boolean  @default(true)
+
+  @@map("user_privacy_settings")
+}
+
+model Follows {
+  followerId  String
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@id([followerId, followingId])
+  @@map("follows")
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  puzzleType  String   @default("3x3")
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  solves      Solve[]
+
+  @@map("sessions")
+}
+
+model Solve {
+  id                BigInt   @id @default(autoincrement())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId         String
+  session           Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  solveNumber       Int
+  timeMs            Int
+  penalty           Penalty  @default(NONE)
+  effectiveTimeMs   Int?
+  scramble          String
+  inspectionSeconds Float?
+  notes             String?
+  tags              String[] @default([])
+  isPb              Boolean  @default(false)
+  recordedAt        DateTime @default(now())
+  createdAt         DateTime @default(now())
+
+  @@index([sessionId, recordedAt(sort: Desc)])
+  @@index([userId, effectiveTimeMs])
+  @@map("solves")
+}
+
+model Competition {
+  id          String            @id @default(uuid())
+  title       String
+  eventType   String            @default("3x3")
+  format      CompetitionFormat @default(AO5)
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime
+  isActive    Boolean           @default(true)
+  createdById String
+  createdBy   User              @relation("CompetitionCreator", fields: [createdById], references: [id])
+  createdAt   DateTime          @default(now())
+
+  scrambles   CompetitionScramble[]
+  entries     CompetitionEntry[]
+
+  @@map("competitions")
+}
+
+model CompetitionScramble {
+  id            String      @id @default(uuid())
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  roundNumber   Int
+  scrambleText  String
+
+  @@map("competition_scrambles")
+}
+
+model CompetitionEntry {
+  id             String      @id @default(uuid())
+  competitionId  String
+  competition    Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  solveResults   Json        // Array of solves, e.g. [{ round: 1, timeMs: 14200, penalty: "NONE" }, ...]
+  finalAverageMs Int?
+  bestSingleMs   Int?
+  rank           Int?
+  submittedAt    DateTime    @default(now())
+
+  @@unique([competitionId, userId])
+  @@map("competition_entries")
+}
+
+model Achievement {
+  code        String   @id
+  title       String
+  description String
+  iconName    String
+  createdAt   DateTime @default(now())
+
+  users UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementCode String
+  achievement     Achievement @relation(fields: [achievementCode], references: [code], onDelete: Cascade)
+  unlockedAt      DateTime    @default(now())
+
+  @@id([userId, achievementCode])
+  @@map("user_achievements")
+}

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CubeStudio 3x3 - Speedcubing Telemetry & Training Studio</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="theme-obsidian">
+  <div class="app-layout" id="appLayout">
+    
+    <!-- TOP NAVIGATION BAR -->
+    <header class="studio-header dim-on-focus">
+      <div class="brand-group">
+        <div class="cube-badge" aria-hidden="true">
+          <div class="cube-matrix">
+            <span class="c-white"></span><span class="c-red"></span><span class="c-blue"></span>
+            <span class="c-orange"></span><span class="c-green"></span><span class="c-yellow"></span>
+            <span class="c-blue"></span><span class="c-orange"></span><span class="c-white"></span>
+          </div>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title">CubeStudio <span class="version-tag">3×3</span></div>
+          <div class="brand-sub">Telemetry & Training Studio</div>
+        </div>
+      </div>
+
+      <!-- Session Selector & Controls -->
+      <div class="session-selector-bar">
+        <span class="session-label">Session:</span>
+        <select id="sessionSelect" class="session-dropdown" title="Switch training session">
+          <!-- Populated by JS -->
+        </select>
+        <button id="btnNewSession" class="btn btn-ghost btn-sm" title="Create a new training session">＋ New</button>
+        <button id="btnRenameSession" class="btn btn-ghost btn-sm" title="Rename active session">✎</button>
+      </div>
+
+      <!-- Mode Switcher -->
+      <div class="mode-tabs" role="tablist">
+        <button id="tabTimerMode" class="tab-btn active" role="tab" aria-selected="true" title="Use spacebar/touch timer">⏱️ Timer</button>
+        <button id="tabInputMode" class="tab-btn" role="tab" aria-selected="false" title="Fast numpad/keyboard input">⌨️ Fast Input</button>
+      </div>
+
+      <!-- Action Buttons & Audio Toggle -->
+      <div class="header-actions">
+        <button id="btnSoundToggle" class="btn btn-ghost btn-sm" title="Toggle sound effects (Inspection & Timer beeps)">🔊 Sound ON</button>
+        <button id="btnExportJson" class="btn btn-ghost btn-sm" title="Export session data as JSON">Export JSON</button>
+        <button id="btnExportCsv" class="btn btn-ghost btn-sm" title="Export session data as CSV">Export CSV</button>
+        <label class="btn btn-ghost btn-sm file-label" title="Import JSON or CSV data">
+          Import
+          <input type="file" id="fileImport" accept=".json,.csv" style="display:none;">
+        </label>
+        <button id="btnResetSession" class="btn btn-ghost-danger btn-sm" title="Reset current session">↺ Reset</button>
+      </div>
+    </header>
+
+    <!-- ZONE 1: FOCUS STAGE -->
+    <main class="focus-stage">
+      
+      <!-- Scramble Bar -->
+      <div class="scramble-panel dim-on-focus">
+        <div class="scramble-top">
+          <div class="scramble-meta">
+            <span class="pill pill-cyan">WCA 3×3 Scramble</span>
+            <span id="scrambleNumber" class="scramble-count">Solve #17</span>
+          </div>
+          <div class="scramble-actions">
+            <button id="btnCopyScramble" class="btn-icon" title="Copy Scramble to Clipboard">📋 <span id="copyBtnText">Copy</span></button>
+            <button id="btnToggle2D" class="btn-icon active" title="Toggle 2D Cube Preview">⊞ 2D View</button>
+            <button id="btnNextScramble" class="btn-icon" title="Generate New Scramble (Alt+N)">🔄 Next</button>
+          </div>
+        </div>
+
+        <div class="scramble-body">
+          <div id="scrambleDisplay" class="scramble-text" title="Click to copy scramble">
+            R2 U' F2 D B2 D' R2 F2 U' L2 U2 B' R D F2 R2 B' L' F' D2
+          </div>
+          <!-- 2D Cube Net Canvas -->
+          <div id="cube2dWrapper" class="cube-2d-wrapper">
+            <canvas id="cube2dCanvas" width="168" height="126" title="2D Net Unfolded Scramble View"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIMER VIEW (Default Mode) -->
+      <div id="timerSection" class="timer-display-card">
+        <div class="timer-settings-quick dim-on-focus">
+          <label class="setting-chip" title="Enable official 15-second WCA inspection countdown">
+            <input type="checkbox" id="toggleInspection">
+            <span>15s WCA Inspection</span>
+          </label>
+        </div>
+
+        <!-- Big Hero Timer Numbers -->
+        <div id="heroTimer" class="hero-timer state-idle" tabindex="0" role="timer" aria-live="polite">
+          <div id="timerDigits" class="timer-digits">00:00.00</div>
+          <div id="timerStatus" class="timer-status">PRESS & HOLD SPACEBAR TO START</div>
+        </div>
+
+        <!-- Quick Solve Actions Bar -->
+        <div class="timer-quick-actions" id="timerQuickActions" style="display:none;">
+          <span class="quick-action-label" id="lastSolveLabel">Last solve:</span>
+          <button id="btnLastPlus2" class="btn-chip chip-orange" title="Toggle +2 penalty (Alt+2)">+2</button>
+          <button id="btnLastDnf" class="btn-chip chip-red" title="Toggle DNF penalty (Alt+D)">DNF</button>
+          <button id="btnLastTag" class="btn-chip chip-blue" title="Add tags / notes (Alt+T)">＋ Add Tag</button>
+          <button id="btnLastDelete" class="btn-chip chip-ghost" title="Delete this solve">🗑 Delete</button>
+        </div>
+
+        <!-- Quick Tag Popover for Last Solve -->
+        <div id="quickTagPopover" class="quick-tag-popover" style="display:none;">
+          <div class="popover-header">
+            <span>🏷️ Quick Tag for Last Solve</span>
+            <button id="btnCloseTagPopover" class="btn-mini" title="Close">✕</button>
+          </div>
+          <div class="popover-chips">
+            <button type="button" class="tag-quick-btn" data-tag="Smooth F2L">Smooth F2L</button>
+            <button type="button" class="tag-quick-btn" data-tag="PLL Skip">PLL Skip</button>
+            <button type="button" class="tag-quick-btn" data-tag="OLL Skip">OLL Skip</button>
+            <button type="button" class="tag-quick-btn" data-tag="Lockup">Lockup</button>
+            <button type="button" class="tag-quick-btn" data-tag="Warmup">Warmup</button>
+            <button type="button" class="tag-quick-btn" data-tag="PB Single">PB Single</button>
+          </div>
+          <div class="popover-input-row">
+            <input type="text" id="quickTagInput" placeholder="Custom note (e.g. clean cross)...">
+            <button type="button" id="btnSaveQuickTag" class="btn btn-primary btn-sm">Save Tag</button>
+          </div>
+        </div>
+
+        <!-- Mobile Touch Trigger Bar -->
+        <div class="mobile-touch-bar" id="mobileTouchBar">
+          <span>Tap & Hold Here to Start Timer</span>
+        </div>
+      </div>
+
+      <!-- FAST MANUAL INPUT VIEW (Secondary Mode) -->
+      <div id="inputSection" class="input-panel dim-on-focus" style="display:none;">
+        <form id="formFastInput" class="fast-input-form">
+          <div class="input-row">
+            <div class="input-box-wrapper">
+              <label for="fastInputTime">Enter Time</label>
+              <div class="input-with-badge">
+                <input 
+                  type="text" 
+                  id="fastInputTime" 
+                  placeholder="e.g. 12862, 1:28.62, 00:01:28:62, or 88.62" 
+                  autocomplete="off"
+                >
+                <div id="inputFormatPreview" class="input-preview">--:--.--</div>
+              </div>
+              <span class="input-hint">Smart typing: <code>12862</code> → <code>01:28.62</code> | Press <strong>Enter</strong> to save</span>
+            </div>
+
+            <div class="input-date-wrapper">
+              <label for="fastInputDate">Date</label>
+              <input type="date" id="fastInputDate">
+            </div>
+
+            <div class="input-time-wrapper">
+              <label for="fastInputClock">Time (HH:MM)</label>
+              <input type="time" id="fastInputClock">
+            </div>
+          </div>
+
+          <div class="input-row second-row">
+            <div class="tag-selector-wrapper">
+              <label>Quick Tags</label>
+              <div class="tag-chips">
+                <button type="button" class="tag-chip" data-tag="Smooth F2L">Smooth F2L</button>
+                <button type="button" class="tag-chip" data-tag="PLL Skip">PLL Skip</button>
+                <button type="button" class="tag-chip" data-tag="OLL Skip">OLL Skip</button>
+                <button type="button" class="tag-chip" data-tag="Lockup">Lockup</button>
+                <button type="button" class="tag-chip" data-tag="Warmup">Warmup</button>
+              </div>
+            </div>
+
+            <div class="notes-wrapper">
+              <label for="fastInputNotes">Notes / Scramble Details</label>
+              <input type="text" id="fastInputNotes" placeholder="Optional notes for this solve...">
+            </div>
+
+            <div class="submit-wrapper">
+              <button type="submit" class="btn btn-primary btn-submit">Save Solve (Enter)</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <!-- ZONE 2: PERFORMANCE TELEMETRY & MILESTONES -->
+    <section class="telemetry-hub dim-on-focus" aria-label="Performance Statistics">
+      
+      <!-- Primary Telemetry Cards -->
+      <div class="telemetry-cards-grid">
+        
+        <!-- Personal Best Single -->
+        <div class="hud-card pb-hud-card">
+          <div class="hud-header">
+            <span class="hud-icon">🏆</span>
+            <span class="hud-title">Personal Best</span>
+          </div>
+          <div class="hud-main">
+            <span id="hudPB" class="hud-value pb-glow">01:28.62</span>
+            <span id="hudPBSub" class="hud-sub">Solve #10</span>
+          </div>
+        </div>
+
+        <!-- Current Ao5 -->
+        <div class="hud-card ao5-hud-card">
+          <div class="hud-header">
+            <span class="hud-icon">⚡</span>
+            <span class="hud-title">Current Ao5</span>
+          </div>
+          <div class="hud-main">
+            <span id="hudCurrentAo5" class="hud-value ao5-color">01:49.21</span>
+            <span id="hudBestAo5" class="hud-sub">Best: 01:35.79</span>
+          </div>
+        </div>
+
+        <!-- Current Ao12 -->
+        <div class="hud-card ao12-hud-card">
+          <div class="hud-header">
+            <span class="hud-icon">🎯</span>
+            <span class="hud-title">Current Ao12</span>
+          </div>
+          <div class="hud-main">
+            <span id="hudCurrentAo12" class="hud-value ao12-color">01:49.24</span>
+            <span id="hudBestAo12" class="hud-sub">Best: 01:48.33</span>
+          </div>
+        </div>
+
+        <!-- Overall Mean & Consistency -->
+        <div class="hud-card">
+          <div class="hud-header">
+            <span class="hud-icon">📊</span>
+            <span class="hud-title">Session Mean & Total</span>
+          </div>
+          <div class="hud-main">
+            <span id="hudMean" class="hud-value">01:52.14</span>
+            <span id="hudTotalSolves" class="hud-sub">16 Solves (σ = 13.8s)</span>
+          </div>
+        </div>
+
+        <!-- Milestone Card (Dynamic Target) -->
+        <div class="hud-card milestone-hud-card">
+          <div class="hud-header">
+            <span class="hud-icon">🚀</span>
+            <span id="hudMilestoneTitle" class="hud-title">Road to Sub-1:30</span>
+          </div>
+          <div class="milestone-content">
+            <div class="milestone-progress-bg">
+              <div id="hudMilestoneBar" class="milestone-progress-fill" style="width: 70%;"></div>
+            </div>
+            <div class="milestone-stats">
+              <span id="hudMilestoneDesc">Closest target based on current pace</span>
+              <span id="hudMilestonePercent" class="milestone-pct">70%</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SMART FILTER & RANGE BAR -->
+    <section class="filter-studio-card dim-on-focus" aria-label="Filters and Range Adjuster">
+      <div class="filter-top-bar">
+        <div class="filter-title-group">
+          <span class="filter-icon">🔍</span>
+          <span class="filter-title">Smart Filters & Range Adjuster</span>
+          <span id="filterCountBadge" class="filter-badge">Showing 16 of 16 Solves</span>
+        </div>
+        <div class="filter-presets">
+          <button type="button" class="preset-btn active" data-preset="all">All Time</button>
+          <button type="button" class="preset-btn" data-preset="today">Today</button>
+          <button type="button" class="preset-btn" data-preset="last7">Last 7 Days</button>
+          <button type="button" id="btnResetFilter" class="btn-text-danger" title="Reset all filters">↺ Reset Filters</button>
+        </div>
+      </div>
+
+      <div class="filter-controls-grid">
+        <!-- Date Range Filter -->
+        <div class="filter-item">
+          <label for="filterDateFrom">📅 Date Range</label>
+          <div class="range-inputs">
+            <input type="date" id="filterDateFrom" title="From Date">
+            <span class="range-sep">to</span>
+            <input type="date" id="filterDateTo" title="To Date">
+          </div>
+        </div>
+
+        <!-- Solve Index Range Filter -->
+        <div class="filter-item">
+          <label for="filterSolveFrom">🔢 Solve # Range</label>
+          <div class="range-inputs">
+            <input type="number" id="filterSolveFrom" placeholder="From #" min="1" class="num-input">
+            <span class="range-sep">to</span>
+            <input type="number" id="filterSolveTo" placeholder="To #" min="1" class="num-input">
+          </div>
+        </div>
+
+        <!-- Status / Tag Filter -->
+        <div class="filter-item">
+          <label for="filterStatusSelect">🏷️ Status / Tag</label>
+          <select id="filterStatusSelect" class="filter-select">
+            <option value="all">All Solves</option>
+            <option value="pb">🏆 Only Personal Best (PB)</option>
+            <option value="tagged">🏷️ Solves with Tags</option>
+            <option value="plus2">🟠 Only +2 Penalties</option>
+            <option value="dnf">🔴 Only DNF</option>
+          </select>
+        </div>
+
+        <!-- Sort Order (Clean Unicode Arrow) -->
+        <div class="filter-item">
+          <label for="filterSortOrder">⇅ Sort Order</label>
+          <select id="filterSortOrder" class="filter-select">
+            <option value="desc">Newest First (#16 → #1)</option>
+            <option value="asc">Oldest First (#1 → #16)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- ZONE 3: CONNECTED DIAGRAM & SOLVE LEDGER -->
+    <div class="workspace-grid dim-on-focus">
+      
+      <!-- Chart Column -->
+      <section class="studio-panel chart-panel">
+        <div class="panel-header">
+          <div class="header-titles">
+            <h2>Performance Telemetry Diagram</h2>
+            <p class="panel-desc">Interactive progression curve with rolling WCA trimmed averages</p>
+          </div>
+          <div class="chart-toggles-bar">
+            <label class="toggle-pill">
+              <input type="checkbox" id="toggleSingle" checked>
+              <span class="pill-badge pill-blue">Single</span>
+            </label>
+            <label class="toggle-pill">
+              <input type="checkbox" id="toggleAo5" checked>
+              <span class="pill-badge pill-amber">Ao5</span>
+            </label>
+            <label class="toggle-pill">
+              <input type="checkbox" id="toggleAo12" checked>
+              <span class="pill-badge pill-cyan">Ao12</span>
+            </label>
+            <label class="toggle-pill">
+              <input type="checkbox" id="toggleTrend" checked>
+              <span class="pill-badge pill-purple">Trend</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="chart-canvas-container">
+          <canvas id="progressionChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Ledger Table Column -->
+      <section class="studio-panel table-panel">
+        <div class="panel-header">
+          <div class="header-titles">
+            <h2>Solve Ledger & History</h2>
+            <p class="panel-desc" id="tableCountSubtitle">16 recorded solves</p>
+          </div>
+          <div class="table-search-bar">
+            <input type="text" id="tableFilter" placeholder="Search notes / time / date..." class="filter-input">
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="ledger-table" id="ledgerTable">
+            <thead>
+              <tr>
+                <th width="44">#</th>
+                <th>Time</th>
+                <th>Ao5</th>
+                <th>Ao12</th>
+                <th>Timestamp</th>
+                <th>Tag / Note</th>
+                <th width="96" style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ledgerTableBody">
+              <!-- Populated dynamically via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Scramble Detail Modal -->
+    <div id="detailModal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="modalTitle">Solve Details</h3>
+          <button id="btnModalClose" class="btn-close" title="Close (Esc)">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-stat-line">
+            <span class="stat-k">Time:</span>
+            <span id="modalTime" class="stat-v">01:28.62</span>
+          </div>
+          <div class="modal-stat-line">
+            <span class="stat-k">Timestamp:</span>
+            <span id="modalTimestamp" class="stat-v">02 Oct 2026, 14:32:10</span>
+          </div>
+          <div class="modal-stat-line">
+            <span class="stat-k">Scramble:</span>
+            <span id="modalScramble" class="stat-v mono-text">--</span>
+          </div>
+          <div class="modal-stat-line">
+            <span class="stat-k">Ao5 at Solve:</span>
+            <span id="modalAo5" class="stat-v">--</span>
+          </div>
+          <div class="modal-stat-line">
+            <span class="stat-k">Notes / Tags:</span>
+            <span id="modalNote" class="stat-v">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Footer Legend -->
+    <footer class="studio-footer dim-on-focus">
+      <span class="shortcut-item"><kbd>Space</kbd> Start/Stop Timer</span>
+      <span class="shortcut-item"><kbd>Alt+N</kbd> Next Scramble</span>
+      <span class="shortcut-item"><kbd>Alt+2</kbd> Toggle +2</span>
+      <span class="shortcut-item"><kbd>Alt+D</kbd> Toggle DNF</span>
+      <span class="shortcut-item"><kbd>Alt+T</kbd> Quick Tag</span>
+      <span class="shortcut-item"><kbd>Esc</kbd> Close Modal</span>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

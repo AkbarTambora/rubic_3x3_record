@@ -1,0 +1,64 @@
+services:
+  # 1. Database: PostgreSQL 16
+  cubestudio-db:
+    image: postgres:16-alpine
+    container_name: cubestudio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-cubestudio}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-cubepassword123}
+      POSTGRES_DB: ${DB_NAME:-cubestudio_db}
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cubestudio} -d ${DB_NAME:-cubestudio_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cubestudio-network
+
+  # 2. Backend REST API Service
+  cubestudio-backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: cubestudio-backend
+    restart: unless-stopped
+    depends_on:
+      cubestudio-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${DB_USER:-cubestudio}:${DB_PASSWORD:-cubepassword123}@cubestudio-db:5432/${DB_NAME:-cubestudio_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-cubestudio_super_secret_jwt_key_2026_wca}
+    ports:
+      - "5000:5000"
+    networks:
+      - cubestudio-network
+
+  # 3. Frontend Web App (Nginx Reverse Proxy)
+  cubestudio-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cubestudio-frontend
+    restart: unless-stopped
+    depends_on:
+      - cubestudio-backend
+    ports:
+      - "3000:80"
+    networks:
+      - cubestudio-network
+
+volumes:
+  postgres_data:
+    name: cubestudio_postgres_data
+
+networks:
+  cubestudio-network:
+    name: cubestudio-network
+    driver: bridge
