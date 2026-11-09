@@ -23,9 +23,7 @@ export function useCubeTimer({
 
   // Keep latest options in a stable ref so event listeners don't rebind
   const optionsRef = useRef({ wcaInspection, soundAlerts, onSolveComplete });
-  useEffect(() => {
-    optionsRef.current = { wcaInspection, soundAlerts, onSolveComplete };
-  }, [wcaInspection, soundAlerts, onSolveComplete]);
+  optionsRef.current = { wcaInspection, soundAlerts, onSolveComplete };
 
   const phaseRef = useRef<TimerPhase>('IDLE');
   const startTimeRef = useRef<number>(0);
@@ -182,7 +180,7 @@ export function useCubeTimer({
     }
   }, []);
 
-  // Hold arming: 300ms hold turns timer green (READY)
+  // Hold arming: 250ms hold turns timer green (READY)
   const beginHold = useCallback(() => {
     if (holdTimeoutRef.current) {
       clearTimeout(holdTimeoutRef.current);
@@ -194,7 +192,7 @@ export function useCubeTimer({
       if (optionsRef.current.soundAlerts) {
         AudioSynth.playReady();
       }
-    }, 300);
+    }, 250);
   }, [updatePhase]);
 
   const cancelHold = useCallback(() => {
@@ -215,11 +213,16 @@ export function useCubeTimer({
       return;
     }
 
-    // 2. If STOPPED: Reset to IDLE first
+    // 2. If STOPPED: Seamlessly arm next solve or inspection immediately
     if (current === 'STOPPED') {
-      updatePhase('IDLE');
-      setDisplayTime('00:00.00');
-      if (timerDigitsDomRef.current) timerDigitsDomRef.current.innerText = '00:00.00';
+      if (optionsRef.current.wcaInspection) {
+        startInspection();
+      } else {
+        updatePhase('HOLDING');
+        setDisplayTime('00:00.00');
+        if (timerDigitsDomRef.current) timerDigitsDomRef.current.innerText = '00:00.00';
+        beginHold();
+      }
       return;
     }
 
@@ -291,14 +294,21 @@ export function useCubeTimer({
 
   // Global Keyboard event listener (Bound ONCE on mount with [] dependencies!)
   useEffect(() => {
-    const isInputElement = (el: EventTarget | null) => {
+    const isTextInputElement = (el: EventTarget | null) => {
       if (!el || !(el instanceof HTMLElement)) return false;
+      if (el.isContentEditable) return true;
       const tag = el.tagName.toLowerCase();
-      return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+      if (tag === 'textarea' || tag === 'select') return true;
+      if (tag === 'input') {
+        const type = (el as HTMLInputElement).type?.toLowerCase();
+        // Only text entry fields should block timer spacebar
+        return type === 'text' || type === 'search' || type === 'number' || type === 'email' || type === 'password';
+      }
+      return false;
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isInputElement(e.target)) return; // Allow typing spaces in inputs!
+      if (isTextInputElement(e.target)) return; // Allow typing spaces in text inputs only!
 
       // If timer is running, ANY key stops it
       if (phaseRef.current === 'RUNNING') {
@@ -316,7 +326,7 @@ export function useCubeTimer({
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (isInputElement(e.target)) return;
+      if (isTextInputElement(e.target)) return;
 
       if (e.code === 'Space') {
         e.preventDefault();

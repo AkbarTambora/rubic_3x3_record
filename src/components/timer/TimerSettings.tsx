@@ -12,7 +12,10 @@ export const TimerSettings: React.FC = () => {
         <input
           type="checkbox"
           checked={settings.wcaInspection}
-          onChange={(e) => updateSettings({ wcaInspection: e.target.checked })}
+          onChange={(e) => {
+            updateSettings({ wcaInspection: e.target.checked });
+            e.target.blur();
+          }}
           className="w-4 h-4 rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-sky-400 focus:ring-offset-0 focus:ring-1 cursor-pointer"
         />
         <div className="flex items-center gap-1.5 group-hover:text-white transition-colors">
@@ -26,7 +29,10 @@ export const TimerSettings: React.FC = () => {
         <input
           type="checkbox"
           checked={settings.soundAlerts}
-          onChange={(e) => updateSettings({ soundAlerts: e.target.checked })}
+          onChange={(e) => {
+            updateSettings({ soundAlerts: e.target.checked });
+            e.target.blur();
+          }}
           className="w-4 h-4 rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-sky-400 focus:ring-offset-0 focus:ring-1 cursor-pointer"
         />
         <div className="flex items-center gap-1.5 group-hover:text-white transition-colors">

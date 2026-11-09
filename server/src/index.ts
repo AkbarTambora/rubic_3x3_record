@@ -3,6 +3,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import healthRoutes from './routes/health.routes';
+import authRoutes from './routes/auth.routes';
+import sessionsRoutes from './routes/sessions.routes';
+import solvesRoutes from './routes/solves.routes';
 
 // Load environment variables
 dotenv.config();
@@ -16,18 +19,41 @@ app.use(cors({
   origin: '*',
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
-// Routes
+// Mount Routes
 app.use('/api', healthRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/sessions', sessionsRoutes);
+app.use('/api/solves', solvesRoutes);
 
 // Root route
 app.get('/', (req, res) => {
   res.json({
     message: 'CubeStudio 3x3 Backend REST API',
-    version: '1.0.0',
+    version: '2.0.0',
     endpoints: {
-      health: '/api/health'
+      health: '/api/health',
+      auth: {
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login',
+        me: 'GET /api/auth/me',
+        profile: 'PATCH /api/auth/profile',
+        privacy: 'PATCH /api/auth/privacy',
+        publicUser: 'GET /api/auth/users/:username'
+      },
+      sessions: {
+        list: 'GET /api/sessions',
+        create: 'POST /api/sessions',
+        update: 'PATCH /api/sessions/:id'
+      },
+      solves: {
+        list: 'GET /api/solves',
+        create: 'POST /api/solves',
+        update: 'PATCH /api/solves/:id',
+        delete: 'DELETE /api/solves/:id',
+        sync: 'POST /api/solves/sync'
+      }
     }
   });
 });
